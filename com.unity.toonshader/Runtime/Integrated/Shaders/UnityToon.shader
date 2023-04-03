@@ -57,6 +57,9 @@ Shader "Toon" {
         //If you want to go back the former SSAO results, comment out the below line.
         _Color ("Color", Color) = (1,1,1,1)
         //
+        [Toggle(_)] _Use_LineMap("Use_LineMap", Float) = 0
+        _LineTex("LineMap", 2D) = "white" {}
+        //
         [Toggle(_)] _Is_LightColor_Base ("Is_LightColor_Base", Float ) = 1
         _1st_ShadeMap ("1st_ShadeMap", 2D) = "white" {}
         //v.2.0.5
@@ -91,7 +94,7 @@ Shader "Toon" {
         _Set_2nd_ShadePosition ("Set_2nd_ShadePosition", 2D) = "white" {}
         _ShadingGradeMap("ShadingGradeMap", 2D) = "white" {}
         //v.2.0.6
-        _Tweak_ShadingGradeMapLevel("Tweak_ShadingGradeMapLevel", Range(-0.5, 0.5)) = 0
+        _Tweak_ShadingGradeMapLevel("Tweak_ShadingGradeMapLevel", Range(-1.0, 1.0)) = 0
         _BlurLevelSGM("Blur Level of ShadingGradeMap", Range(0, 10)) = 0
         //
         _HighColor ("HighColor", Color) = (0,0,0,1)

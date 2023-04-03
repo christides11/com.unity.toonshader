@@ -14,10 +14,12 @@ float _utsTechnique;
 float4 _MainTex_ST;
 
 float4 _Color;
+fixed _Use_LineMap;
 fixed _Use_BaseAs1st;
 fixed _Use_1stAs2nd;
 fixed _Is_LightColor_Base;
 //
+float4 _LineTex_ST;
 float4 _1st_ShadeMap_ST;
 float4 _1st_ShadeColor;
 fixed _Is_LightColor_1st_Shade;
@@ -193,6 +195,7 @@ CBUFFER_END
 //sampler2D _NormalMap;
 
 TEXTURE2D(_MainTex); SAMPLER(sampler_MainTex);
+TEXTURE2D(_LineTex);
 TEXTURE2D(_1st_ShadeMap);
 TEXTURE2D(_2nd_ShadeMap);
 TEXTURE2D(_NormalMap);

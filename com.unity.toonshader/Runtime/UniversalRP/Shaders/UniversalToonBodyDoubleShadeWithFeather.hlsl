@@ -136,6 +136,7 @@
                 _Color = _BaseColor;
 
 #ifdef _IS_PASS_FWDBASE
+
                 float3 Set_LightColor = lightColor.rgb;
                 float3 Set_BaseColor = lerp( (_BaseColor.rgb*_MainTex_var.rgb), ((_BaseColor.rgb*_MainTex_var.rgb)*Set_LightColor), _Is_LightColor_Base );
                 //v.2.0.5
@@ -152,6 +153,7 @@
                 //Minmimum value is same as the Minimum Feather's value with the Minimum Step's value as threshold.
                 float _SystemShadowsLevel_var = (shadowAttenuation*0.5)+0.5+_Tweak_SystemShadowsLevel > 0.001 ? (shadowAttenuation*0.5)+0.5+_Tweak_SystemShadowsLevel : 0.0001;
                 float Set_FinalShadowMask = saturate((1.0 + ( (lerp( _HalfLambert_var, _HalfLambert_var*saturate(_SystemShadowsLevel_var), _Set_SystemShadowsToBase ) - (_BaseColor_Step-_BaseShade_Feather)) * ((1.0 - _Set_1st_ShadePosition_var.rgb).r - 1.0) ) / (_BaseColor_Step - (_BaseColor_Step-_BaseShade_Feather))));
+                Set_FinalShadowMask = i.color.r >= 0.5 ? Set_FinalShadowMask : 1.0;
                 //
                 //Composition: 3 Basic Colors as Set_FinalBaseColor
                 float3 Set_FinalBaseColor = lerp(Set_BaseColor,lerp(Set_1st_ShadeColor,Set_2nd_ShadeColor,saturate((1.0 + ( (_HalfLambert_var - (_ShadeColor_Step-_1st2nd_Shades_Feather)) * ((1.0 - _Set_2nd_ShadePosition_var.rgb).r - 1.0) ) / (_ShadeColor_Step - (_ShadeColor_Step-_1st2nd_Shades_Feather))))),Set_FinalShadowMask); // Final Color
@@ -468,5 +470,12 @@
                 fixed4 finalRGBA = fixed4(finalColor,Set_Opacity);
 
 #endif
+
+                if (_Use_LineMap == 1)
+                {
+                    float4 _LineTex_var = lerp(SAMPLE_TEXTURE2D(_LineTex, sampler_MainTex, TRANSFORM_TEX(Set_UV0, _LineTex)), finalRGBA, 1 - _Use_LineMap);
+                    finalRGBA = finalRGBA * (1 - _LineTex_var.a) + (_LineTex_var * _LineTex_var.a);
+                }
+
                 return finalRGBA;
             }

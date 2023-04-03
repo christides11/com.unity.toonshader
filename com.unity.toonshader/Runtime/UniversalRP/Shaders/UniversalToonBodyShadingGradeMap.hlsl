@@ -552,6 +552,11 @@
 
 #endif
 
+                if (_Use_LineMap == 1)
+                {
+                    float4 _LineTex_var = lerp(SAMPLE_TEXTURE2D(_LineTex, sampler_MainTex, TRANSFORM_TEX(Set_UV0, _LineTex)), finalRGBA, 1 - _Use_LineMap);
+                    finalRGBA = finalRGBA * (1 - _LineTex_var.a) + (_LineTex_var * _LineTex_var.a);
+                }
 
                 return finalRGBA;
 

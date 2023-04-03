@@ -133,6 +133,9 @@
                 float4 tangent : TANGENT;
                 float2 texcoord0 : TEXCOORD0;
 
+                //v.custom
+                float4 color : COLOR; // vertex color
+
 
 #ifdef _IS_ANGELRING_OFF
             float2 lightmapUV   : TEXCOORD1;
@@ -145,6 +148,10 @@
             struct VertexOutput {
                 float4 pos : SV_POSITION;
                 float2 uv0 : TEXCOORD0;
+
+                //v.custom
+                float4 color : COLOR; // vertex color
+
 //v.2.0.4
 #ifdef _IS_ANGELRING_OFF
                 float4 posWorld : TEXCOORD1;
@@ -483,6 +490,8 @@
                 o.mainLightID = DetermineUTS_MainLightIndex(o.posWorld.xyz, 0, positionCS);
 #endif
 
+                //v.custom
+                o.color = v.color;
 		
                 return o;
             }
