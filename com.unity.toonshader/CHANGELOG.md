@@ -1,4 +1,22 @@
 # Changelog
+## [0.9.6-preview] - 2023-09-24
+### TBD
+
+## [0.9.5-preview] - 2023-08-25
+### Fixed
+* A URP Shader error when using newer than 2023.1.3.
+* A Null Reference Exception error with HDRP tesslation shader.
+
+## [0.9.4-preview] - 2023-05-01
+* Added a exlanation for URP line issue  into Kown Issues.
+
+## [0.9.3-preview] - 2023-04-18
+* Deleted warnings when creating materials with URP and Built-in shaders.
+
+## [0.9.2-preview] - 2023-04-12
+### Fixed
+* URP shader doesn't recieve shadows in player builds.
+
 ## [0.9.1-preview] - 2023-03-30
 ### Fixed
 * Some wrong information for shader path in docs.

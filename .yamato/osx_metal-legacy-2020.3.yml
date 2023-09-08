@@ -6,7 +6,7 @@ test_projects:
 unity_versions:
   - name: 2020.3
   - name: 2021.3  
-  - name: 2022.2    
+  - name: 2022.3    
 ---
 {% for test_project in test_projects %}
 {% for unity_version in unity_versions %}
@@ -14,7 +14,6 @@ unity_versions:
     name: {{ test_project.name }} on OSX_Metal_playmode_mono_Linear on version {{ unity_version.name }}
     agent:
         type: Unity::metal::macmini
-        model: M1
         image: package-ci/macos-12:v0.0.1-1084810
         flavor: b1.large    
     variables:
