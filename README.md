@@ -1,4 +1,14 @@
-﻿# Latest official docs
+# General
+Modified unity toon shader for various features.
+
+Install via package manager using git url.
+> https://github.com/christides11/com.unity.toonshader.git?path=com.unity.toonshader
+
+# Current Added Features
+* Use vertex color for darkening areas
+* Option for separate texture for applying black lines.
+ 
+ # Latest official docs
 - [English](https://docs.unity3d.com/Packages/com.unity.toonshader@latest)
 - [日本語](https://docs.unity3d.com/ja/Packages/com.unity.toonshader@latest)
 
