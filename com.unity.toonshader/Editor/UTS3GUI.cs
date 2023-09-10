@@ -155,7 +155,6 @@ namespace UnityEditor.Rendering.Toon
         internal const string ShaderPropIs_LightColor_AR = "_Is_LightColor_AR";
         internal const string ShaderPropIs_LightColor_Outline = "_Is_LightColor_Outline";
         internal const string ShaderPropInvert_MatcapMask = "_Inverse_MatcapMask";
-        internal const string ShaderPropUse_LineMap = "_Use_LineMap";
         internal const string ShaderPropUse_BaseAs1st = "_Use_BaseAs1st";
         internal const string ShaderPropUse_1stAs2nd = "_Use_1stAs2nd";
         internal const string ShaderPropIs_NormalMapToBase = "_Is_NormalMapToBase";
@@ -372,7 +371,6 @@ namespace UnityEditor.Rendering.Toon
         protected MaterialProperty stencilValue = null;
 
         protected MaterialProperty stencilMode = null;
-        protected MaterialProperty lineTex = null;
         protected MaterialProperty mainTex = null;
         protected MaterialProperty baseColor = null;
         protected MaterialProperty firstShadeMap = null;
@@ -467,7 +465,6 @@ namespace UnityEditor.Rendering.Toon
             stencilValue = FindProperty(ShaderPropStencilNo, props);
 
             stencilMode = FindProperty(ShaderPropStencilMode, props);
-            lineTex = FindProperty("_LineTex", props);
             mainTex = FindProperty(ShaderPropMainTex, props);
             baseColor = FindProperty("_BaseColor", props);
             firstShadeMap = FindProperty("_1st_ShadeMap", props);
@@ -604,7 +601,6 @@ namespace UnityEditor.Rendering.Toon
             public static readonly GUIContent pointLightFoldout = EditorGUIUtility.TrTextContent("Point Light Settings", "Point light settings. Such as filtering and step offset.");
 
             public static readonly GUIContent baseColorText = new GUIContent("Base Map", "Base Color : Texture(sRGB) × Color(RGB) Default:White");
-            public static readonly GUIContent lineMapText = new GUIContent("Line Map", "The map used for overlaying lines.");
             public static readonly GUIContent firstShadeColorText = new GUIContent("1st Shading Map", "The map used for the brighter portions of the shadow.");
             public static readonly GUIContent secondShadeColorText = new GUIContent("2nd Shading Map", "The map used for the darker portions of the shadow.");
             public static readonly GUIContent normalMapText = new GUIContent("Normal Map", "A texture that dictates the bumpiness of the material.");
@@ -1427,14 +1423,6 @@ namespace UnityEditor.Rendering.Toon
             {
                 m_MaterialEditor.TexturePropertySingleLine(Styles.secondShadeColorText, secondShadeMap, secondShadeColor);
             }
-            EditorGUILayout.Space();
-
-            m_MaterialEditor.TexturePropertySingleLine(Styles.lineMapText, lineTex, baseColor);
-
-            EditorGUI.indentLevel += 2;
-            var applyLineMap = GUI_Toggle(material, Styles.useLineMapText, ShaderPropUse_LineMap, MaterialGetInt(material, ShaderPropUse_LineMap) != 0);
-            EditorGUI.indentLevel -= 2;
-
             EditorGUILayout.Space();
 
             /*

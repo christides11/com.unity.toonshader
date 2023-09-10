@@ -57,9 +57,6 @@ Shader "Toon" {
         //If you want to go back the former SSAO results, comment out the below line.
         _Color ("Color", Color) = (1,1,1,1)
         //
-        [Toggle(_)] _Use_LineMap("Use_LineMap", Float) = 0
-        _LineTex("LineMap", 2D) = "white" {}
-        //
         [Toggle(_)] _Is_LightColor_Base ("Is_LightColor_Base", Float ) = 1
         _1st_ShadeMap ("1st_ShadeMap", 2D) = "white" {}
         //v.2.0.5
