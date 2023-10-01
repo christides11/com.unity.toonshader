@@ -1,12 +1,11 @@
 # General
-Modified unity toon shader for various features.
+Modified unity toon shader for various features related to Arc System Works' techniques.
 
 Install via package manager using git url.
 > https://github.com/christides11/com.unity.toonshader.git?path=com.unity.toonshader
 
 # Current Added Features
 * Use vertex color for darkening areas
-* Option for separate texture for applying black lines.
  
  # Latest official docs
 - [English](https://docs.unity3d.com/Packages/com.unity.toonshader@latest)
