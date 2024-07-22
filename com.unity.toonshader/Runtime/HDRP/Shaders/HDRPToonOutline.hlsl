@@ -150,7 +150,10 @@ void Frag(PackedVaryingsToPS packedInput,
     float4 unity_AmbientEquator = float4(0.05, 0.05, 0.05, 1.0); //Todo.
     //v.2.0.9
     float3 envLightSource_GradientEquator = unity_AmbientEquator.rgb >0.05 ? unity_AmbientEquator.rgb : half3(0.05,0.05,0.05);
-    float3 envLightSource_SkyboxIntensity = max(ShadeSH9(half4(0.0,0.0,0.0,1.0)),ShadeSH9(half4(0.0,-1.0,0.0,1.0))).rgb;
+    float3 envLightSource_SkyboxIntensity = max(
+        SampleBakedGI_UTS(objPos, float3(0.0, 0.0, 0.0), input.texCoord1.xy, input.texCoord2.xy, true),
+        SampleBakedGI_UTS(objPos, float3(0.0, -1.0, 0.0), input.texCoord1.xy, input.texCoord2.xy, true)
+        ).rgb;
     float3 ambientSkyColor = envLightSource_SkyboxIntensity.rgb>0.0 ? envLightSource_SkyboxIntensity*_Unlit_Intensity : envLightSource_GradientEquator*_Unlit_Intensity;
     //
     float3 lightColor = _LightColor0.rgb >0.05 ? _LightColor0.rgb : ambientSkyColor.rgb;
@@ -183,7 +186,7 @@ void Frag(PackedVaryingsToPS packedInput,
 
 
 #elif _IS_OUTLINE_CLIPPING_YES
-    float4 _ClippingMask_var = SAMPLE_TEXTURE2D(_ClippingMask, sampler_MainTex, TRANSFORM_TEX(Set_UV0, _ClippingMask));
+    float4 _ClippingMask_var = SAMPLE_TEXTURE2D(_ClippingMask, sampler_MainTex, TRANSFORM_TEX(Set_UV0, _MainTex));
     float Set_MainTexAlpha = _MainTex_var.a;
     float _IsBaseMapAlphaAsClippingMask_var = lerp( _ClippingMask_var.r, Set_MainTexAlpha, _IsBaseMapAlphaAsClippingMask );
     float _Inverse_Clipping_var = lerp( _IsBaseMapAlphaAsClippingMask_var, (1.0 - _IsBaseMapAlphaAsClippingMask_var), _Inverse_Clipping );

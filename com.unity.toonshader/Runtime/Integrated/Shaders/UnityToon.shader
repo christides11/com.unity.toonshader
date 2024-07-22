@@ -7,8 +7,8 @@ Shader "Toon" {
         [HideInInspector] _simpleUI ("SimpleUI", Int ) = 0
         [HideInInspector][Enum(OFF, 0, ON, 1)] _isUnityToonshader("Material is touched by Unity Toon Shader", Int) = 1
         [HideInInspector] _utsVersionX("VersionX", Float) = 0
-        [HideInInspector] _utsVersionY("VersionY", Float) = 9
-        [HideInInspector] _utsVersionZ("VersionZ", Float) = 6
+        [HideInInspector] _utsVersionY("VersionY", Float) = 10
+        [HideInInspector] _utsVersionZ("VersionZ", Float) = 1
         [HideInInspector] _utsTechnique ("Technique", int ) = 0 //DWF
         _AutoRenderQueue("Automatic Render Queue ", int) = 1
 
@@ -964,6 +964,8 @@ Shader "Toon" {
             #pragma multi_compile _ LIGHTMAP_ON
             #pragma multi_compile _ DIRLIGHTMAP_COMBINED
             #pragma multi_compile _ DYNAMICLIGHTMAP_ON
+            // Ensure APV path is taken if available
+            #pragma multi_compile_fragment _ PROBE_VOLUMES_L1 PROBE_VOLUMES_L2
             #pragma multi_compile _ SHADOWS_SHADOWMASK
             // Setup DECALS_OFF so the shader stripper can remove variants
             #pragma multi_compile DECALS_OFF DECALS_3RT DECALS_4RT
@@ -1080,6 +1082,10 @@ Shader "Toon" {
             #define SHADOW_LOW
             #define LIGHTLOOP_DISABLE_TILE_AND_CLUSTER
 
+            #pragma multi_compile _ LIGHTMAP_ON
+            #pragma multi_compile _ DYNAMICLIGHTMAP_ON
+            // Ensure APV path is taken if available
+            #pragma multi_compile_fragment _ PROBE_VOLUMES_L1 PROBE_VOLUMES_L2
             #pragma multi_compile _IS_OUTLINE_CLIPPING_NO _IS_OUTLINE_CLIPPING_YES
             #pragma multi_compile _OUTLINE_NML _OUTLINE_POS
             #pragma shader_feature _ _IS_CLIPPING_MATTE
@@ -1162,6 +1168,16 @@ Shader "Toon" {
             // Outline is implemented in UniversalToonOutline.hlsl.
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
+
+            //--------------------------------------
+            // GPU Instancing
+            #pragma multi_compile_instancing
+        #if UNITY_VERSION >= 202230 // Requires Universal RP 14.0.7
+            #include_with_pragmas "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DOTS.hlsl"
+        #else
+            #pragma multi_compile _ DOTS_INSTANCING_ON
+        #endif
+
 #ifdef UNIVERSAL_PIPELINE_CORE_INCLUDED
             #include "../../UniversalRP/Shaders/UniversalToonInput.hlsl"
             #include "../../UniversalRP/Shaders/UniversalToonHead.hlsl"
@@ -1215,8 +1231,27 @@ Shader "Toon" {
             #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE _MAIN_LIGHT_SHADOWS_SCREEN
             #pragma multi_compile _ _ADDITIONAL_LIGHTS_VERTEX _ADDITIONAL_LIGHTS
             #pragma multi_compile _ _ADDITIONAL_LIGHT_SHADOWS
-            #pragma multi_compile _ _SHADOWS_SOFT
+            #pragma multi_compile _ _SHADOWS_SOFT _SHADOWS_SOFT_LOW _SHADOWS_SOFT_MEDIUM _SHADOWS_SOFT_HIGH
             #pragma multi_compile _ _FORWARD_PLUS
+            #if (!defined(UNITY_COMPILER_DXC) && (defined(UNITY_PLATFORM_OSX) || defined(UNITY_PLATFORM_IOS))) || defined(SHADER_API_PS5)
+
+                #if defined(SHADER_API_PS5) || defined(SHADER_API_METAL)
+
+                    #define SUPPORTS_FOVEATED_RENDERING_NON_UNIFORM_RASTER 1
+
+                    // On Metal Foveated Rendering is currently not supported with DXC
+                    #pragma warning (disable : 3568) // unknown pragma ignored
+
+                    #pragma never_use_dxc metal
+                    #pragma dynamic_branch _ _FOVEATED_RENDERING_NON_UNIFORM_RASTER
+
+                    #pragma warning (default : 3568) // restore unknown pragma ignored
+
+                #endif
+
+            #endif
+            #pragma multi_compile_fragment _ _DBUFFER_MRT1 _DBUFFER_MRT2 _DBUFFER_MRT3
+            #pragma multi_compile_fragment _ _LIGHT_LAYERS
 
             #pragma multi_compile _ _MIXED_LIGHTING_SUBTRACTIVE
             // -------------------------------------
@@ -1227,6 +1262,16 @@ Shader "Toon" {
             #pragma multi_compile _ LIGHTMAP_ON
             #pragma multi_compile _ DYNAMICLIGHTMAP_ON
             #pragma multi_compile_fog
+
+            //--------------------------------------
+            // GPU Instancing
+            #pragma multi_compile_instancing
+            #pragma instancing_options renderinglayer
+        #if UNITY_VERSION >= 202230 // Requires Universal RP 14.0.7
+            #include_with_pragmas "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DOTS.hlsl"
+        #else
+            #pragma multi_compile _ DOTS_INSTANCING_ON
+        #endif
 
             #define _IS_PASS_FWDBASE
             // DoubleShadeWithFeather and ShadingGradeMap use different fragment shader.  
@@ -1271,6 +1316,14 @@ Shader "Toon" {
             #pragma prefer_hlslcc gles
             #pragma exclude_renderers d3d11_9x
 
+            //--------------------------------------
+            // GPU Instancing
+            #pragma multi_compile_instancing
+        #if UNITY_VERSION >= 202230 // Requires Universal RP 14.0.7
+            #include_with_pragmas "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DOTS.hlsl"
+        #else
+            #pragma multi_compile _ DOTS_INSTANCING_ON
+        #endif
 
             #pragma shader_feature_local _SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A
 
@@ -1305,6 +1358,14 @@ Shader "Toon" {
             // Material Keywords
             #pragma shader_feature_local _SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A
 
+            //--------------------------------------
+            // GPU Instancing
+            #pragma multi_compile_instancing
+        #if UNITY_VERSION >= 202230 // Requires Universal RP 14.0.7
+            #include_with_pragmas "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DOTS.hlsl"
+        #else
+            #pragma multi_compile _ DOTS_INSTANCING_ON
+        #endif
 
 
             #include "../../UniversalRP/Shaders/UniversalToonInput.hlsl"
@@ -1338,6 +1399,14 @@ Shader "Toon" {
             #pragma shader_feature_local _SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A
 
 
+            //--------------------------------------
+            // GPU Instancing
+            #pragma multi_compile_instancing
+        #if UNITY_VERSION >= 202230 // Requires Universal RP 14.0.7
+            #include_with_pragmas "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DOTS.hlsl"
+        #else
+            #pragma multi_compile _ DOTS_INSTANCING_ON
+        #endif
 
             #include "../../UniversalRP/Shaders/UniversalToonInput.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/Shaders/DepthNormalsPass.hlsl"

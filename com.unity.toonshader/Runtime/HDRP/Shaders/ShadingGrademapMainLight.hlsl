@@ -54,7 +54,7 @@ float3 UTS_MainLightShadingGrademap(LightLoopContext lightLoopContext, FragInput
 #ifdef _IS_TRANSCLIPPING_OFF
 //
 #elif _IS_TRANSCLIPPING_ON
-    float4 _ClippingMask_var = SAMPLE_TEXTURE2D(_ClippingMask, sampler_MainTex, TRANSFORM_TEX(Set_UV0, _ClippingMask));
+    float4 _ClippingMask_var = SAMPLE_TEXTURE2D(_ClippingMask, sampler_MainTex, TRANSFORM_TEX(Set_UV0, _MainTex));
     float Set_MainTexAlpha = _MainTex_var.a;
     float _IsBaseMapAlphaAsClippingMask_var = lerp(_ClippingMask_var.r, Set_MainTexAlpha, _IsBaseMapAlphaAsClippingMask);
     float _Inverse_Clipping_var = lerp(_IsBaseMapAlphaAsClippingMask_var, (1.0 - _IsBaseMapAlphaAsClippingMask_var), _Inverse_Clipping);
@@ -73,8 +73,11 @@ float3 UTS_MainLightShadingGrademap(LightLoopContext lightLoopContext, FragInput
 
     float3 defaultLightDirection = normalize(UNITY_MATRIX_V[2].xyz + UNITY_MATRIX_V[1].xyz);
     //v.2.0.5
-    float3 defaultLightColor = saturate(max(float3(0.05, 0.05, 0.05) * _Unlit_Intensity, max(ShadeSH9(float4(0.0, 0.0, 0.0, 1.0)), ShadeSH9(float4(0.0, -1.0, 0.0, 1.0)).rgb) * _Unlit_Intensity));
-    float3 customLightDirection = normalize(mul(UNITY_MATRIX_M, float4(((float3(1.0, 0.0, 0.0) * _Offset_X_Axis_BLD * 10) + (float3(0.0, 1.0, 0.0) * _Offset_Y_Axis_BLD * 10) + (float3(0.0, 0.0, -1.0) * lerp(-1.0, 1.0, _Inverse_Z_Axis_BLD))), 0)).xyz);
+    float3 defaultLightColor = saturate(max(float3(0.05, 0.05, 0.05) * _Unlit_Intensity, max(
+        SampleBakedGI_UTS(posInput.positionWS, float3(0.0, 0.0, 0.0), input.texCoord1.xy, input.texCoord2.xy, true),
+        SampleBakedGI_UTS(posInput.positionWS, float3(0.0, -1.0, 0.0), input.texCoord1.xy, input.texCoord2.xy, true)
+        ) * _Unlit_Intensity));
+    float3 customLightDirection = normalize(mul(UNITY_MATRIX_M, float4(((float3(1.0, 0.0, 0.0) * _Offset_X_Axis_BLD * 10) + (float3(0.0, 1.0, 0.0) * _Offset_Y_Axis_BLD * 10) + (float3(0.0, 0.0, -1.0) * lerp(-1.0, 1.0, _Inverse_Z_Axis_BLD))), 0)).xyz);    
     float3 lightDirection = normalize(lerp(defaultLightDirection, mainLihgtDirection.xyz, any(mainLihgtDirection.xyz)));
     lightDirection = lerp(lightDirection, customLightDirection, _Is_BLD);
     float3 originalLightColor = mainLightColor.rgb;
@@ -111,7 +114,7 @@ float3 UTS_MainLightShadingGrademap(LightLoopContext lightLoopContext, FragInput
 
 #endif //#ifdef UTS_LAYER_VISIBILITY
     //v.2.0.5
-    float4 _1st_ShadeMap_var = lerp(SAMPLE_TEXTURE2D(_1st_ShadeMap, sampler_MainTex,TRANSFORM_TEX(Set_UV0, _1st_ShadeMap)), _MainTex_var, _Use_BaseAs1st);
+    float4 _1st_ShadeMap_var = lerp(SAMPLE_TEXTURE2D(_1st_ShadeMap, sampler_MainTex,TRANSFORM_TEX(Set_UV0, _MainTex)), _MainTex_var, _Use_BaseAs1st);
     float3 _Is_LightColor_1st_Shade_var = lerp((_1st_ShadeMap_var.rgb * _1st_ShadeColor.rgb), ((_1st_ShadeMap_var.rgb * _1st_ShadeColor.rgb) * Set_LightColor), _Is_LightColor_1st_Shade);
     float _HalfLambert_var = 0.5 * dot(lerp(i_normalDir, utsData.normalDirection, _Is_NormalMapToBase), lightDirection) + 0.5; // Half Lambert
      //v.2.0.6
@@ -152,7 +155,7 @@ float3 UTS_MainLightShadingGrademap(LightLoopContext lightLoopContext, FragInput
 #endif //#ifdef UTS_LAYER_VISIBILITY
     float3 _BaseColor_var = lerp(Set_BaseColor, _Is_LightColor_1st_Shade_var, Set_FinalShadowMask);
     //v.2.0.5
-    float4 _2nd_ShadeMap_var = lerp(SAMPLE_TEXTURE2D(_2nd_ShadeMap, sampler_MainTex,TRANSFORM_TEX(Set_UV0, _2nd_ShadeMap)), _1st_ShadeMap_var, _Use_1stAs2nd);
+    float4 _2nd_ShadeMap_var = lerp(SAMPLE_TEXTURE2D(_2nd_ShadeMap, sampler_MainTex,TRANSFORM_TEX(Set_UV0, _MainTex)), _1st_ShadeMap_var, _Use_1stAs2nd);
     float _2ndColorFeatherForMask = lerp(_2nd_ShadeColor_Feather, 0.0f, max(_SecondShadeOverridden, _ComposerMaskMode));
     float Set_ShadeShadowMask = saturate((1.0 + ((Set_ShadingGrade - (_2nd_ShadeColor_Step - _2ndColorFeatherForMask)) * (0.0 - 1.0)) / (_2nd_ShadeColor_Step - (_2nd_ShadeColor_Step - _2ndColorFeatherForMask)))); // 1st and 2nd Shades Mask
     //Composition: 3 Basic Colors as Set_FinalBaseColor
@@ -387,8 +390,8 @@ float3 UTS_MainLightShadingGrademap(LightLoopContext lightLoopContext, FragInput
 
 
     //v.2.0.6: GI_Intensity with Intensity Multiplier Filter
-    float3 envLightColor = DecodeLightProbe(utsData.normalDirection) < float3(1, 1, 1) ? DecodeLightProbe(utsData.normalDirection) : float3(1, 1, 1);
-    float envLightIntensity = 0.299 * envLightColor.r + 0.587 * envLightColor.g + 0.114 * envLightColor.b < 1 ? (0.299 * envLightColor.r + 0.587 * envLightColor.g + 0.114 * envLightColor.b) : 1;
+    float3 envLightColor = saturate(SampleBakedGI_UTS(posInput.positionWS, utsData.normalDirection, input.texCoord1.xy, input.texCoord2.xy, true));
+    float envLightIntensity = saturate(0.299 * envLightColor.r + 0.587 * envLightColor.g + 0.114 * envLightColor.b);
 
     finalColor = SATURATE_IF_SDR(finalColor) + (envLightColor * envLightIntensity * _GI_Intensity * smoothstep(1, 0, envLightIntensity / 2)) + emissive;
 

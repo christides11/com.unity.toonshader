@@ -126,7 +126,30 @@
 #endif
                 return EnvironmentBRDF(brdfData, indirectDiffuse, indirectSpecular, fresnelTerm);     
             }
-
+#if UNITY_VERSION >= 202120
+            void ApplyDecalToSurfaceDataUTS(float4 positionCS, inout float3 albedo, inout SurfaceData surfaceData, inout float3 normalWS)
+            {
+                #ifdef _SPECULAR_SETUP
+                    half metallic = 0;
+                    ApplyDecal(positionCS,
+                        albedo,
+                        surfaceData.specular,
+                        normalWS,
+                        metallic,
+                        surfaceData.occlusion,
+                        surfaceData.smoothness);
+                #else
+                    half3 specular = 0;
+                    ApplyDecal(positionCS,
+                        albedo,
+                        specular,
+                        normalWS,
+                        surfaceData.metallic,
+                        surfaceData.occlusion,
+                        surfaceData.smoothness);
+                #endif
+            }
+#endif
             struct VertexInput {
                 float4 vertex : POSITION;
                 float3 normal : NORMAL;
@@ -221,6 +244,9 @@
                 float    distanceAttenuation;
                 float    shadowAttenuation;
                 int      type;
+#ifdef _LIGHT_LAYERS
+                uint     layerMask;
+#endif
             };
 
             ///////////////////////////////////////////////////////////////////////////////
@@ -306,6 +332,9 @@
                 light.shadowAttenuation = 1.0;
                 light.color = _MainLightColor.rgb;
                 light.type = _MainLightPosition.w;
+#ifdef _LIGHT_LAYERS
+                light.layerMask = _MainLightLayerMask;
+#endif
                 return light;
             }
 
@@ -325,12 +354,18 @@
                 half3 color = _AdditionalLightsBuffer[perObjectLightIndex].color.rgb;
                 half4 distanceAndSpotAttenuation = _AdditionalLightsBuffer[perObjectLightIndex].attenuation;
                 half4 spotDirection = _AdditionalLightsBuffer[perObjectLightIndex].spotDirection;
+    #ifdef _LIGHT_LAYERS
+                uint lightLayerMask = _AdditionalLightsBuffer[perObjectLightIndex].layerMask;
+    #endif
                 half4 lightOcclusionProbeInfo = _AdditionalLightsBuffer[perObjectLightIndex].occlusionProbeChannels;
 #else
                 float4 lightPositionWS = _AdditionalLightsPosition[perObjectLightIndex];
                 half3 color = _AdditionalLightsColor[perObjectLightIndex].rgb;
                 half4 distanceAndSpotAttenuation = _AdditionalLightsAttenuation[perObjectLightIndex];
                 half4 spotDirection = _AdditionalLightsSpotDir[perObjectLightIndex];
+    #ifdef _LIGHT_LAYERS
+                uint lightLayerMask = asuint(_AdditionalLightsLayerMasks[perObjectLightIndex]);
+    #endif
                 half4 lightOcclusionProbeInfo = _AdditionalLightsOcclusionProbes[perObjectLightIndex];
 #endif
 
@@ -348,6 +383,9 @@
                 light.shadowAttenuation = AdditionalLightRealtimeShadowUTS(perObjectLightIndex, positionWS, positionCS);
                 light.color = color;
                 light.type = lightPositionWS.w;
+#ifdef _LIGHT_LAYERS
+                light.layerMask = lightLayerMask;
+#endif
 
                 // In case we're using light probes, we can sample the attenuation from the `unity_ProbesOcclusion`
 #if defined(LIGHTMAP_ON) || defined(_MIXED_LIGHTING_SUBTRACTIVE)
@@ -380,9 +418,21 @@
                 return GetAdditionalPerObjectUtsLight(perObjectLightIndex, positionWS, positionCS);
             }
 
-            half3 GetLightColor(UtsLight light)
+            half3 GetLightColor(
+                UtsLight light
+            #ifdef _LIGHT_LAYERS
+                , uint meshRenderingLayers
+            #endif
+            )
             {
-                return light.color * light.distanceAttenuation;
+                half3 lightColor = 0;
+            #ifdef _LIGHT_LAYERS
+                if (IsMatchingLightLayer(light.layerMask, meshRenderingLayers))
+            #endif
+            {
+                    lightColor = light.color * light.distanceAttenuation;
+                }
+                return lightColor;
             }
 
 
@@ -449,9 +499,9 @@
                 o.uv1 = v.texcoord1;
 #endif
                 o.normalDir = UnityObjectToWorldNormal(v.normal);
-                o.tangentDir = normalize( mul( unity_ObjectToWorld, float4( v.tangent.xyz, 0.0 ) ).xyz );
+                o.tangentDir = normalize( mul( GetObjectToWorldMatrix(), float4( v.tangent.xyz, 0.0 ) ).xyz );
                 o.bitangentDir = normalize(cross(o.normalDir, o.tangentDir) * v.tangent.w);
-                o.posWorld = mul(unity_ObjectToWorld, v.vertex);
+                o.posWorld = mul(GetObjectToWorldMatrix(), v.vertex);
 
                 o.pos = UnityObjectToClipPos( v.vertex );
                 //v.2.0.7 Detection of the inside the mirror (right or left-handed) o.mirrorFlag = -1 then "inside the mirror".
@@ -466,7 +516,11 @@
                 half fogFactor = ComputeFogFactor(positionCS.z);
 
                 OUTPUT_LIGHTMAP_UV(v.lightmapUV, unity_LightmapST, o.lightmapUV);
-#if UNITY_VERSION >= 202317
+#if UNITY_VERSION >= 60000009
+                // https://github.com/Unity-Technologies/Graphics/commit/74b1fdc26cee492e8af7358116076806bdf5b4cc
+                float4 probeOcclusionUnused;
+                OUTPUT_SH4(positionWS, o.normalDir.xyz, GetWorldSpaceNormalizeViewDir(positionWS), o.vertexSH, probeOcclusionUnused);
+#elif UNITY_VERSION >= 202317
                 OUTPUT_SH4(positionWS, o.normalDir.xyz, GetWorldSpaceNormalizeViewDir(positionWS), o.vertexSH);
 #elif UNITY_VERSION >= 202310
                 OUTPUT_SH(positionWS, o.normalDir.xyz, GetWorldSpaceNormalizeViewDir(positionWS), o.vertexSH);
@@ -510,12 +564,27 @@
 
 #endif //#if defined(_SHADINGGRADEMAP)
 
-            float4 frag(VertexOutput i, fixed facing : VFACE) : SV_TARGET
+            void frag(
+                VertexOutput i
+                , fixed facing : VFACE
+                , out float4 finalRGBA : SV_Target0
+#ifdef _WRITE_RENDERING_LAYERS
+                , out float4 outRenderingLayers : SV_Target1
+#endif
+            )
             {
 #if defined(_SHADINGGRADEMAP)
-                    return fragShadingGradeMap(i, facing);
+                    fragShadingGradeMap(i, facing, finalRGBA
+                        #ifdef _WRITE_RENDERING_LAYERS
+                            ,outRenderingLayers
+                        #endif
+                    );
 #else
-                    return fragDoubleShadeFeather(i, facing);
+                    fragDoubleShadeFeather(i, facing, finalRGBA
+                        #ifdef _WRITE_RENDERING_LAYERS
+                            ,outRenderingLayers
+                        #endif
+                    );
 #endif
 
             }

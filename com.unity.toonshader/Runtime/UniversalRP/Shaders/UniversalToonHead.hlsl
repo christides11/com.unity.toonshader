@@ -144,14 +144,13 @@ inline half3 LinearToGammaSpace(half3 linRGB)
 #endif
 
 // Transforms 2D UV by scale/bias property
-//#define TRANSFORM_TEX(tex,name) (tex.xy * name##_ST.xy + name##_ST.zw)
 #define UCTS_TEXTURE2D(tex,name)  SAMPLE_TEXTURE2D(tex,sampler##tex,TRANSFORM_TEX(name, tex));
 
 inline float4 UnityObjectToClipPosInstanced(in float3 pos)
 {
     //    return mul(UNITY_MATRIX_VP, mul(unity_ObjectToWorldArray[unity_InstanceID], float4(pos, 1.0)));
           // todo. right?
-    return mul(UNITY_MATRIX_VP, mul(unity_ObjectToWorld, float4(pos, 1.0)));
+    return mul(UNITY_MATRIX_VP, mul(GetObjectToWorldMatrix(), float4(pos, 1.0)));
 }
 inline float4 UnityObjectToClipPosInstanced(float4 pos)
 {
@@ -165,7 +164,7 @@ inline float3 UnityObjectToWorldNormal(in float3 norm)
     return UnityObjectToWorldDir(norm);
 #else
     // mul(IT_M, norm) => mul(norm, I_M) => {dot(norm, I_M.col0), dot(norm, I_M.col1), dot(norm, I_M.col2)}
-    return normalize(mul(norm, (float3x3)unity_WorldToObject));
+    return normalize(mul(norm, (float3x3)GetWorldToObjectMatrix()));
 #endif
 }
 // normal should be normalized, w=1.0
